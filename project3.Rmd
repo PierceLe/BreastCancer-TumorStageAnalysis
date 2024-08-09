@@ -1,0 +1,332 @@
+---
+title: "Breast Cancer: Identifying the Stage and Conditions for Peak Tumor Size"
+author: "SID: 530328265"
+subtitle: "Project 3"
+date: "University of Sydney | DATA1001 | 10/2023"
+# You can change the title, subtitle, author etc.
+# if you do not want a subtitle, author, or date just delete or comment # the the line!
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+    self_contained: yes
+    theme: paper
+    # Other themes can be found at: https://bootswatch.com/
+    css: 
+      - https://use.fontawesome.com/releases/v5.0.6/css/all.css
+    #This will allow you to insert icons in your document, thanks to [Font Awesome](http://fontawesome.io).
+    #You will find an examples below.
+    # If you are knitting your document but not connected to the internet, place a "#" in front of the css line above with the font-awesome.min.css line to comment it out. This will let you knit the document in draft form until you connect again and knit the final. Note that when you do this some elements will be missing from the knitted slides. 
+    toc: true
+    #This adds a Table of Contents (toc).
+    toc_depth: 3
+    #This controls the number of subheadings included in the toc.
+    toc_float: true
+    #This allows toc to update relative to your location as you scroll down the html page.
+    code_folding: hide
+    #code_folding can be changed to "hide"" if you want the all your code to be collapsed when you open the document
+    
+    # More information: http://rmarkdown.rstudio.com/html_document_format.html
+bibliography: main.bib
+biblio-style: "apalike"
+---
+
+![](https://media.cancercare.org/photo-library/original/susan-g-komen-logo.png)
+
+
+
+# Client
+* [Susan G. Komen](https://www.komen.org/)
+* A breast cancer organization in the United States. 
+* Komen focuses on patient navigation and advocacy, providing resources for breast cancer patients to understand the American medical system. It has also funded research into the causes and treatment of breast cancer.
+* [Linkedln](https://www.linkedin.com/company/susangkomen/mycompany/)
+* [Website](https://www.komen.org/)
+
+# Recommendation
+The analysis highlights the importance of tumor size in breast cancer prognosis, with significant variations across N and T Stages. This emphasizes early detection's criticality. For Susan G. Komen, enhancing screening and awareness campaigns is essential. Also, the link between larger tumors and increased regional node positivity calls for personalized treatment and comprehensive nodal assessments. By integrating hypothesis testing results, emphasizing tumor size and stage correlation, Susan G. Komen can bolster its role in promoting breast cancer detection, treatment, and research. This strategic focus is pivotal in improving patient outcomes and driving impactful changes in patient care.
+
+# Evidence
+
+## Initial Data Analysis (IDA)
+- This dataset of breast cancer patients was obtained from the 2017 November update of the SEER Program of the NCI. The source of this data set is published by [Reyhaneh Namdari](https://ca.linkedin.com/in/reyhaneh-namdari-b8544a2a).
+- For more information about this dataset, you can assess the links below.
+- [Source](https://www.kaggle.com/datasets/reihanenamdari/breast-cancer/data)
+- [Additional information](https://ieee-dataport.org/open-access/seer-breast-cancer-data)
+
+## Identifying the Stage and Conditions for Peak Tumor Size.
+```{r echo = FALSE, message = F}
+#install library
+library(tidyverse)
+library(readr)
+library(plotly)
+library(rcompanion)
+#import and read dataframe
+my_data = read.csv("breast_cancer.csv")
+T1_data <- my_data[my_data$T.Stage == "T1", ]
+T2_data <- my_data[my_data$T.Stage == "T2", ]
+T3_data <- my_data[my_data$T.Stage == "T3", ]
+T4_data <- my_data[my_data$T.Stage == "T4", ]
+N1_data <- my_data[my_data$N.Stage == "N1", ]
+N2_data <- my_data[my_data$N.Stage == "N2", ]
+N3_data <- my_data[my_data$N.Stage == "N3", ]
+A1_data <- my_data[my_data$A.Stage == "Regional",]
+A2_data <- my_data[my_data$A.Stage == "Distant",]
+```
+
+### Figure 1: Tumor size comparison by N stage
+
+```{r echo = FALSE}
+fig <- plot_ly(my_data, y = ~Tumor.Size, color = ~N.Stage, type = "box")
+fig <- fig %>%
+          layout(
+        title = "Tumor Size Comparison by N Stage",
+        xaxis = list(title = "N Stage"),
+        yaxis = list(title = "Tumor Size (mm)")
+      )
+  
+
+fig
+```
+
+From the box plots, N3 stages have the biggest median tumor sizes, which alligns with the expectation that more advanced lymph node involvement can be associated with larger primary tumor. The presence of outliers in all stages also highlights the variability in tumor sizes within each N stage.
+
+### Figure 2: Tumor size comparison by T stage
+
+```{r echo = FALSE}
+fig <- plot_ly(y = T1_data$Tumor.Size, name = "T1", type = "violin", box = list(
+      visible = T
+    ),
+    meanline = list(
+      visible = T
+    ),) %>%
+        add_trace(y = T2_data$Tumor.Size, name = "T2") %>%
+        add_trace(y = T3_data$Tumor.Size, name = "T3") %>%
+        add_trace(y = T4_data$Tumor.Size, name = "T4") %>%
+        layout(
+        title = "Tumor Size Comparison by T Stage",
+        xaxis = list(title = "T Stage"),
+        yaxis = list(title = "Tumor Size (mm)")
+      )
+fig
+
+```
+
+
+From the violin plots, The T3 stage having the highest median tumor size is noteworthy. This suggests that, patients in the T3 stage tend to have larger tumors on average compared to other stages.
+
+
+### Figure 3: Relationship between Regional Node Positivity and Tumor Size
+
+```{r echo = FALSE}
+p <- ggplot(my_data, aes(y = Tumor.Size , x = Reginol.Node.Positive)) +
+  geom_point(color = "darkgreen") + 
+  geom_point(aes(x = mean(Reginol.Node.Positive), y = mean(Tumor.Size)), color = "orange", size = 5) +
+  labs(title = "") +
+  geom_smooth(method = "lm", formula = "y ~ x") +
+ylab("Tumor size (mm)") + xlab("Regional Node Positivity") + labs(title = "Relationship between Regional Node Positivity and Tumor Size")
+ggplotly(p)
+```
+
+```{r echo = FALSE}
+correlation =round(cor(my_data$Tumor.Size, my_data$Reginol.Node.Positive), 2)
+correlation
+
+line <- lm(my_data$Tumor.Size ~ my_data$Reginol.Node.Positive)
+ln = line$coefficients
+ln
+```
+\[Correlation = 0.24      \text{                   (weak positive correlation)}\]
+
+\[y = 1.002x + 26.309     \text{                   (where x = Regional Node positivity and y = Tumor size (mm))}\]
+In summary, there is a weak positive correlation in the data, showing that for each node detected to be positive, tumor size increase approximately 1.002 (mm).
+
+### Figure 4: Residual graph of tumor size ~ Regional node positivity
+
+```{r echo = FALSE}
+line = lm(my_data$Tumor.Size ~ my_data$Reginol.Node.Positive, data = my_data)
+p <- ggplot(line, aes(x = .fitted, y = .resid)) +
+  geom_point(color = "darkgreen") +
+  geom_hline(yintercept = 0, linetype ="dashed", colour = "orange") + ylab("Residual") + xlab("Regional Node Positivity") + labs(title = "Residual graph of tumor size ~ Regional node positivity")
+
+ggplotly(p)
+```
+
+However, judging by the residual plots given here, the linear model is not a great fit as it is not homoscedastic. This might implies weak correlation.
+
+## Hypothesis testing( Two Sample T Test at the 5% significance level)
+
+```{r echo = FALSE}
+grouped_data <- my_data %>%
+    group_by(A.Stage) %>%
+    summarise(Mean = mean(Tumor.Size), SEM = sd(Tumor.Size) / sqrt(n()))
+plot_1 <- plot_ly(y = A2_data$Tumor.Size, name = "Distant", type = "box") %>%
+        add_trace(y = A1_data$Tumor.Size, name = "Regional" ) %>%
+        layout(
+        title = "",
+        xaxis = list(title = "A Stage"),
+        yaxis = list(title = "Tumor Size (mm)")
+      )
+
+plot_2 <- plot_ly(grouped_data, x = ~A.Stage, y = ~Mean, type = 'bar', error_y = ~list(array = SEM, color = "orange"), marker = list(color = "lightblue")) %>%
+    layout(title = "",
+           xaxis = list(title = "Stage"),
+           yaxis = list(title = "Average Tumor Size"))
+
+subplot(plot_1, plot_2, nrows = 1)
+```
+
+Looking at the boxplots generated, there is a clear trend that patients with distant cancer have larger tumors. To investigate whether this correlation is due to chance or not, we use two sample T-test at the 5% significant level.
+
+### Set up research question { .unnumbered}
+Does A stage impact the tumor size of patients?
+
+**H: Hypothesis \(H_{0}\) vs \(H_{1}\)**
+
+Let $\mu_{1}$ is the mean of the tumor size of distant in A stage.
+
+Let $\mu_{2}$ is the mean of the tumor size of regional in A stage.
+
+Thus,
+\[ H_{0} \text{: There is no difference between } \mu_{1} and \mu_{2}(\mu_{1} = \mu_{2})\]
+
+\[ H_{1} \text{: There is a difference between } \mu_{1} and \mu_{2}(\mu_{1} \neq \mu_{2})\]
+
+### T: Test statistic and P: P-value { .unnumbered}
+
+```{r echo = FALSE}
+t.test(A1_data$Tumor.Size, A2_data$Tumor.Size, var.equal = T)
+```
+
+### Conclusion { .unnumbered}
+
+* **T (Test Statistic): **The observed test statistic is \(t = -7.9175\)
+
+* **P (P-value): **The p-value is \(3.109e-15\)
+
+* **Statistical conclusion: **As the p-value < 0.05, we reject the null hypothesis.
+
+* **Scientific conclusion: **The data suggest that A stage have effect on the tumor size.
+
+# Integration of External Evidence
+
+@carter1989relation, Relation of tumor size, lymph node status, and survival in 24,740 breast cancer cases.
+
+@carter1989relation, Accuracy of the extent of axillary nodal positivity related to primary tumor size, number of involved nodes, and number of nodes examined;.
+
+@koscielny2009impact, Impact of tumour size on axillary involvement and distant dissemination in breast cancer.
+
+# Acknowledgments
+
+@plotly, Interactive web-based data visualization with R, plotly, and shiny.
+
+@Rmarkdown, R Markdown: The Definitive Guide.
+
+@theme, Creating Pretty Documents from R Markdown.
+
+
+[Examplar 1](https://canvas.sydney.edu.au/courses/51659/pages/project-3?module_item_id=1955537)
+
+[Examplar 2](https://canvas.sydney.edu.au/courses/51659/pages/project-3?module_item_id=1955537)
+
+[Examplar 3](https://canvas.sydney.edu.au/courses/51659/pages/project-3?module_item_id=1955537)
+
+
+# References
+<div id="refs"></div>
+
+
+
+# Appendix
+
+## Client Choice
+The report offers substantial value to Susan G. Komen:
+
+**Research Advancement**: Insights on tumor size variations and regional node positivity provide a deeper understanding of breast cancer progression, potentially guiding future research. This aligns with Susan G. Komen's research goals, making your report a valuable resource.
+
+**Awareness Campaigns**: Your emphasis on early detection and the significance of tumor size in prognosis dovetails with their awareness initiatives. The findings could refine their campaigns, highlighting the need for early screening and public education on key indicators.
+
+**Treatment Advocacy**: The data-driven insights inform advocacy for personalized treatments and comprehensive nodal assessments, supporting patient-centric healthcare policies.
+
+Overall, the report aligns with their mission, enhancing efforts and providing insights to further their impactful work against breast cancer.
+
+## Statisitcal Analyses
+
+### Linear modelling
+
+Linear modelling was chosen to demonstrate the association between tumor size and regional Node positivity . Assumption tests:
+
+* "Eye-test". The relationship are not linear (Figure 3), however due to with large sample size normality is assumed (\(n = 4024\))
+
+* Residual plots (Figure 4): the linear model is not a great fit as it is not homoscedastic. This might implies weak correlation.
+
+### Hypothesis testing( Two Sample T Test at the 5% significance level)
+#### Set up research question
+Does A stage impact the tumor size of patients?
+
+**H: Hypothesis \(H_{0}\) vs \(H_{1}\)**
+
+Let $\mu_{1}$ is the mean of the tumor size of distant in A stage.
+
+Let $\mu_{2}$ is the mean of the tumor size of regional in A stage.
+
+Thus,
+\[ H_{0} \text{: There is no difference between } \mu_{1} and \mu_{2}(\mu_{1} = \mu_{2})\]
+
+\[ H_{1} \text{: There is a difference between } \mu_{1} and \mu_{2}(\mu_{1} \neq \mu_{2})\]
+
+
+#### Weigh up evidence 
+
+##### A: Assumption {.tabset .tabset-fade .unnumbered}
+
+* Assuming that two sample are independent and they are big enough to present the hole population.
+
+* The report assume that the 2 populations have the same variation in tumor size.
+```{r echo = FALSE}
+var.test(A2_data$Tumor.Size, A1_data$Tumor.Size)
+```
+
+* The report assume that the 2 populations have Normally distributed tumor size.
+
+* QQ plots. Generally, the values increase linearly, suggesting normal distribution. Some deviation is observed at the extremities; however, due to the large sample size normality is assumed, as stated in central limit theoreom. (Figure 5, 6)
+
+###### Figure 5 { .unnumbered}
+```{r echo = FALSE}
+a1 <- qqnorm(A2_data$Tumor.Size)
+```
+
+###### Figure 6 { .unnumbered}
+```{r echo = FALSE}
+a2 <- qqnorm(A1_data$Tumor.Size)
+```
+
+##### T: Test statistic and P: P-value { .unnumbered}
+
+```{r echo = FALSE}
+t.test(A1_data$Tumor.Size, A2_data$Tumor.Size, var.equal = T)
+```
+
+#### Explain conclusion
+
+**Statistical conclusion:**
+
+As the p-value < 0.05, we reject the null hypothesis.
+
+**Scientific conclusion: **
+
+The data suggest that A stage have effect on the tumor size.
+
+
+## Limitations 
+
+* In the assumption, we assume that 2 populations have Normally distributed tumor size, however, from the QQ plots, some deviation is observed at the extremities (Figure 5, 6)
+
+* Week correlation between Regional Node Positivity and Tumor Size (Figure 4)
+
+* Influence of Other Prognostic Factors
+
+* Variability in Measurement
+
+
+
+
